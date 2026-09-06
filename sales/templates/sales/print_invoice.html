@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ invoice.invoice_number }}</title>
+
+    <style>
+
+        body {
+            font-family: Arial;
+            margin: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            border: 1px solid black;
+            padding: 5px;
+        }
+
+    </style>
+</head>
+
+<body>
+
+<h2>{{ company.name }}</h2>
+
+<p>{{ company.address }}</p>
+
+<p>GST: {{ company.gst_no }}</p>
+
+<hr>
+
+<h3>Invoice: {{ invoice.invoice_number }}</h3>
+
+<p>Date: {{ invoice.invoice_date }}</p>
+
+<p>Party: {{ invoice.customer.name }}</p>
+
+<table>
+
+<tr>
+    <th>Product</th>
+    <th>Batch</th>
+    <th>Qty</th>
+    <th>Rate</th>
+    <th>Total</th>
+</tr>
+
+{% for item in items %}
+
+<tr>
+    <td>{{ item.product.name }}</td>
+    <td>{{ item.batch.batch_no }}</td>
+    <td>{{ item.qty }}</td>
+    <td>{{ item.rate }}</td>
+    <td>{{ item.line_total }}</td>
+</tr>
+
+{% endfor %}
+
+</table>
+
+<br>
+
+<h3>Taxable: {{ invoice.taxable_amount }}</h3>
+
+<h3>CGST: {{ invoice.cgst_amount }}</h3>
+
+<h3>SGST: {{ invoice.sgst_amount }}</h3>
+
+<h2>Net Amount: {{ invoice.net_amount }}</h2>
+
+<script>
+window.print();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h1>
+Purchase Invoice {{ purchase.invoice_no }}
+</h1>
+
+<h3>
+Supplier:
+{{ purchase.supplier.name }}
+</h3>
+
+<hr>
+
+<h2>Items</h2>
+
+<table border="1">
+
+<tr>
+    <th>Product</th>
+    <th>Batch</th>
+    <th>Qty</th>
+</tr>
+
+{% for item in items %}
+
+<tr>
+    <td>{{ item.product.name }}</td>
+    <td>{{ item.batch_no }}</td>
+    <td>{{ item.qty }}</td>
+</tr>
+
+{% endfor %}
+
+</table>
+
+<hr>
+
+<h2>Add Item</h2>
+
+<form method="POST">
+
+    {% csrf_token %}
+
+    <label>Product</label>
+
+    <select name="product">
+
+        {% for product in products %}
+            <option value="{{ product.id }}">
+                {{ product.name }}
+            </option>
+        {% endfor %}
+
+    </select>
+
+    <br><br>
+
+    <label>Batch No</label>
+    <input type="text" name="batch_no">
+
+    <br><br>
+
+    <label>Expiry Date</label>
+    <input type="date" name="expiry_date">
+
+    <br><br>
+
+    <label>Quantity</label>
+    <input type="number" name="qty">
+
+    <br><br>
+
+    <label>MRP</label>
+    <input type="number" step="0.01" name="mrp">
+
+    <br><br>
+
+    <label>PTR</label>
+    <input type="number" step="0.01" name="ptr">
+
+    <br><br>
+
+    <label>PTS</label>
+    <input type="number" step="0.01" name="pts">
+
+    <br><br>
+
+    <button type="submit">
+        Add Item
+    </button>
+
+</form>
+
+</body>
+</html>
