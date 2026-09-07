@@ -18,10 +18,22 @@ from django.contrib import admin
 from django.urls import path, include
 
 urlpatterns = [
+    # 1. Django Admin Interface Panel
     path('admin/', admin.site.urls),
-    path('', include('sales.urls')),
-    path('reports/', include('reports.urls')),
+
+    # 2. Main Dashboard Panel (Root Route '/')
+    path('', include('dashboard.urls')),
+
+    # 3. Sales Application Sub-routing Module
+    path('sales/', include('sales.urls')),
+
+    # 4. Purchases Tracking Sub-routing Module
     path('purchases/', include('purchases.urls')),
-    path('ledger/',include('ledger.urls')),
-    path('dashboard/',include('dashboard.urls')),
+
+    # 5. Financial Ledger Accounting Module
+    path('ledger/', include('ledger.urls')),
+
+    # 6. Inventory Analytical Reports Module
+    path('reports/', include('reports.urls')),
 ]
+

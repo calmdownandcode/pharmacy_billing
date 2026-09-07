@@ -1,46 +1,19 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Create Invoice</title>
-</head>
-<body>
-
-<h1>Create Invoice</h1>
-
-<form method = "Post">
-    {% csrf_token %}
-
-<label>Customer</label>
-
-<select name="customer">
-
-    <option value="">Select Customer</option>
-
-    {% for customer in customers %}
-        <option value="{{ customer.id }}">
-            {{ customer.name }}
-        </option>
-    {% endfor %}
-
-</select>
-
-    <br><br>
-
-    <label>Invoice Date</label>
-    <input type="date">
-
-    <br><br>
-
-    <label>Order No</label>
-    <input type="text">
-
-    <br><br>
-
-    <button type="submit">
-        Create Invoice
-    </button>
-
-</form>
-
-</body>
-</html>
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h1>Create Invoice</h1>
+    <form method="POST" action="{% url 'invoice_create' %}">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="customer" class="form-label">Customer</label>
+            <select name="customer" id="customer" class="form-select" required>
+                <option value="" selected disabled>Select Customer</option>
+                {% for customer in customers %}
+                    <option value="{{ customer.id }}">{{ customer.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Create Invoice</button>
+    </form>
+</div>
+{% endblock %}

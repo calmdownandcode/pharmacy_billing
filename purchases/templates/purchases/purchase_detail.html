@@ -1,104 +1,79 @@
-<!DOCTYPE html>
-<html>
-<body>
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h1>Purchase Invoice: {{ purchase.invoice_no }}</h1>
+    <h3>Supplier: {{ purchase.supplier.name }}</h3>
+    <p>Date: {{ purchase.invoice_date }}</p>
 
-<h1>
-Purchase Invoice {{ purchase.invoice_no }}
-</h1>
+    <h2 class="mt-4">Items</h2>
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Product</th>
+                <th>Batch No</th>
+                <th>Qty</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td>{{ item.product.name }}</td>
+                <td>{{ item.batch_no }}</td>
+                <td>{{ item.qty }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="3" class="text-center">No items added to this purchase yet.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 
-<h3>
-Supplier:
-{{ purchase.supplier.name }}
-</h3>
+    <div class="mb-4">
+        <a href="{% url 'create_purchase_return' purchase.id %}" class="btn btn-warning">Purchase Return</a>
+    </div>
 
-<hr>
+    <hr>
 
-<h2>Items</h2>
-
-<table border="1">
-
-<tr>
-    <th>Product</th>
-    <th>Batch</th>
-    <th>Qty</th>
-</tr>
-
-{% for item in items %}
-
-<tr>
-    <td>{{ item.product.name }}</td>
-    <td>{{ item.batch_no }}</td>
-    <td>{{ item.qty }}</td>
-</tr>
-
-{% endfor %}
-
-</table>
-
-<hr>
-
-<h2>Add Item</h2>
-
-<form method="POST">
-
-    {% csrf_token %}
-
-    <label>Product</label>
-
-    <select name="product">
-
-        {% for product in products %}
-            <option value="{{ product.id }}">
-                {{ product.name }}
-            </option>
-        {% endfor %}
-
-    </select>
-
-    <br><br>
-
-    <label>Batch No</label>
-    <input type="text" name="batch_no">
-
-    <br><br>
-
-    <label>Expiry Date</label>
-    <input type="date" name="expiry_date">
-
-    <br><br>
-
-    <label>Quantity</label>
-    <input type="number" name="qty">
-
-    <br><br>
-
-    <label>MRP</label>
-    <input type="number" step="0.01" name="mrp">
-
-    <br><br>
-
-    <label>PTR</label>
-    <input type="number" step="0.01" name="ptr">
-
-    <br><br>
-
-    <label>PTS</label>
-    <input type="number" step="0.01" name="pts">
-
-    <br><br>
-
-    <button type="submit">
-        Add Item
-    </button>
-
-    <a
-    class="btn btn-warning"
-    href="{% url 'create_purchase_return' purchase.id %}"
-    >
-    Purchase Return
-    </a>
-
-</form>
-
-</body>
-</html>
+    <h2>Add Item to Purchase</h2>
+    <form method="POST" action="{% url 'purchase_detail' purchase.id %}">
+        {% csrf_token %}
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label for="product" class="form-label">Product</label>
+                <select name="product" id="product" class="form-select" required>
+                    <option value="" selected disabled>Select Product</option>
+                    {% for product in products %}
+                        <option value="{{ product.id }}">{{ product.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="batch_no" class="form-label">Batch No</label>
+                <input type="text" name="batch_no" id="batch_no" class="form-control" required>
+            </div>
+            <div class="col-md-4">
+                <label for="expiry_date" class="form-label">Expiry Date</label>
+                <input type="date" name="expiry_date" id="expiry_date" class="form-control" required>
+            </div>
+            <div class="col-md-3">
+                <label for="qty" class="form-label">Quantity</label>
+                <input type="number" name="qty" id="qty" min="1" class="form-control" required>
+            </div>
+            <div class="col-md-3">
+                <label for="mrp" class="form-label">MRP</label>
+                <input type="number" name="mrp" id="mrp" step="0.01" class="form-control" required>
+            </div>
+            <div class="col-md-3">
+                <label for="ptr" class="form-label">PTR</label>
+                <input type="number" name="ptr" id="ptr" step="0.01" class="form-control" required>
+            </div>
+            <div class="col-md-3">
+                <label for="pts" class="form-label">PTS</label>
+                <input type="number" name="pts" id="pts" step="0.01" class="form-control" required>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary mt-3">Add Item</button>
+    </form>
+</div>
+{% endblock %}

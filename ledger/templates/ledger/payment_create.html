@@ -1,72 +1,41 @@
-<!DOCTYPE html>
-<html>
-<body>
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h1>New Payment Receipt</h1>
+    <form method="POST" action="{% url 'payment_create' %}">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="customer" class="form-label">Party / Customer</label>
+            <select name="customer" id="customer" class="form-select" required>
+                <option value="" selected disabled>Select Party</option>
+                {% for customer in customers %}
+                    <option value="{{ customer.id }}">{{ customer.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
 
-<h1>New Payment</h1>
+        <div class="row">
+            <div class="mb-3 col-md-6">
+                <label for="payment_date" class="form-label">Date</label>
+                <input type="date" name="payment_date" id="payment_date" class="form-control" required>
+            </div>
+            <div class="mb-3 col-md-6">
+                <label for="amount" class="form-label">Amount (₹)</label>
+                <input type="number" name="amount" id="amount" step="0.01" min="0.01" class="form-control" required>
+            </div>
+        </div>
 
-<form method="POST">
+        <div class="mb-3">
+            <label for="reference_no" class="form-label">Reference No (e.g. Chq / Txn ID)</label>
+            <input type="text" name="reference_no" id="reference_no" class="form-control">
+        </div>
 
-    {% csrf_token %}
+        <div class="mb-3">
+            <label for="remarks" class="form-label">Remarks</label>
+            <textarea name="remarks" id="remarks" rows="3" class="form-control"></textarea>
+        </div>
 
-    <label>Party</label>
-
-    <select name="customer">
-
-        {% for customer in customers %}
-
-            <option value="{{ customer.id }}">
-                {{ customer.name }}
-            </option>
-
-        {% endfor %}
-
-    </select>
-
-    <br><br>
-
-    <label>Date</label>
-
-    <input
-        type="date"
-        name="payment_date"
-    >
-
-    <br><br>
-
-    <label>Amount</label>
-
-    <input
-        type="number"
-        step="0.01"
-        name="amount"
-    >
-
-    <br><br>
-
-    <label>Reference No</label>
-
-    <input
-        type="text"
-        name="reference_no"
-    >
-
-    <br><br>
-
-    <label>Remarks</label>
-
-    <textarea
-        name="remarks"
-    ></textarea>
-
-    <br><br>
-
-    <button type="submit">
-        Save Payment
-    </button>
-
-    
-
-</form>
-
-</body>
-</html>
+        <button type="submit" class="btn btn-success">Save Payment</button>
+    </form>
+</div>
+{% endblock %}

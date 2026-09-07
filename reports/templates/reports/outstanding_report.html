@@ -1,35 +1,26 @@
-<!DOCTYPE html>
-<html>
-<body>
-
-<h1>Outstanding Report</h1>
-
-<table class="table table-striped table-bordered">
-
-<tr>
-    <th>Party</th>
-    <th>Outstanding</th>
-</tr>
-
-{% for row in data %}
-
-<tr>
-
-    <td>
-        <a href="{% url 'party_ledger' row.customer.id %}">
-            {{ row.customer.name }}
-        </a>
-    </td>
-
-    <td>
-        {{ row.outstanding }}
-    </td>
-
-</tr>
-
-{% endfor %}
-
-</table>
-
-</body>
-</html>
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h1>Customer Outstanding Balance Report</h1>
+    <table class="table table-striped table-bordered mt-4">
+        <thead>
+            <tr>
+                <th>Party Name</th>
+                <th>Total Outstanding Balance (₹)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in data %}
+            <tr>
+                <td>{{ row.customer.name }}</td>
+                <td class="text-danger fw-bold">₹{{ row.outstanding }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="2" class="text-center text-success">All client accounts are clear! No outstanding balances.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

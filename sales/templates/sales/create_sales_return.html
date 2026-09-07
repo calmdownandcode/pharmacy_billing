@@ -1,59 +1,28 @@
 {% extends 'base.html' %}
-
 {% block content %}
+<div class="container mt-4">
+    <h2>Sales Return</h2>
+    <h4>Invoice: {{ invoice.invoice_number }}</h4>
 
-<h2>
-Sales Return
-</h2>
+    <form method="POST" action="{% url 'create_sales_return' invoice.id %}">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="invoice_item" class="form-label">Select Item to Return</label>
+            <select name="invoice_item" id="invoice_item" class="form-select" required>
+                <option value="" selected disabled>Choose item...</option>
+                {% for item in items %}
+                    <option value="{{ item.id }}">{{ item.product.name }} (Batch: {{ item.batch.batch_no }} | Invoiced Qty: {{ item.qty }})</option>
+                {% endfor %}
+            </select>
+        </div>
 
-<h4>
-Invoice:
-{{ invoice.invoice_number }}
-</h4>
+        <div class="mb-3 col-md-3">
+            <label for="qty" class="form-label">Return Qty</label>
+            <input type="number" name="qty" id="qty" min="1" class="form-control" required>
+        </div>
 
-<form method="POST">
-
-{% csrf_token %}
-
-<label>Item</label>
-
-<select name="invoice_item">
-
-{% for item in items %}
-
-<option value="{{ item.id }}">
-
-{{ item.product.name }}
-
-(Batch: {{ item.batch.batch_no }})
-
-</option>
-
-{% endfor %}
-
-</select>
-
-<br><br>
-
-<label>Return Qty</label>
-
-<input
-type="number"
-name="qty"
-required
->
-
-<br><br>
-
-<button
-class="btn btn-danger"
-type="submit"
->
-Save Return
-</button>
-
-
-
-</form>
-
+        <button type="submit" class="btn btn-danger">Save Return</button>
+        <a href="{% url 'invoice_detail' invoice.id %}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
 {% endblock %}

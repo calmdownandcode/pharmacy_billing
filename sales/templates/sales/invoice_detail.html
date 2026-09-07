@@ -1,117 +1,90 @@
-<!DOCTYPE html>
-<html>
-<body>
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h1>Invoice: {{ invoice.invoice_number }}</h1>
+    <h3>Customer: {{ invoice.customer.name }}</h3>
+    <p>Date: {{ invoice.invoice_date }}</p>
 
-<h1>
-Invoice {{ invoice.invoice_number }}
-</h1>
+    <h2 class="mt-4">Items</h2>
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Product</th>
+                <th>Batch</th>
+                <th>Qty</th>
+                <th>Free Qty</th>
+                <th>Rate</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td>{{ item.product.name }}</td>
+                <td>{{ item.batch.batch_no }}</td>
+                <td>{{ item.qty }}</td>
+                <td>{{ item.free_qty }}</td>
+                <td>{{ item.rate }}</td>
+                <td>{{ item.line_total }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="text-center">No items added yet.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 
-<h3>
-Customer:
-{{ invoice.customer.name }}
-</h3>
+    <div class="text-end mb-4">
+        <h3>Taxable Amount: ₹{{ invoice.taxable_amount }}</h3>
+        <h3>CGST: ₹{{ invoice.cgst_amount }}</h3>
+        <h3>SGST: ₹{{ invoice.sgst_amount }}</h3>
+        <h2>Net Amount: ₹{{ invoice.net_amount }}</h2>
+    </div>
 
-<hr>
+    <div class="d-flex gap-2 mb-4">
+        <a href="{% url 'print_invoice' invoice.id %}" target="_blank" class="btn btn-success">Print Invoice</a>
+        <a href="{% url 'create_sales_return' invoice.id %}" class="btn btn-warning">Sales Return</a>
+    </div>
 
-<h2>Items</h2>
+    <hr>
 
-<table border="1">
-
-<tr>
-    <th>Product</th>
-    <th>Batch</th>
-    <th>Qty</th>
-</tr>
-
-{% for item in items %}
-<tr>
-    <td>{{ item.product.name }}</td>
-    <td>{{ item.batch.batch_no }}</td>
-    <td>{{ item.qty }}</td>
-</tr>
-{% endfor %}
-
-</table>
-
-<hr>
-
-<h3>Taxable Amount: {{ invoice.taxable_amount }}</h3>
-
-<h3>CGST: {{ invoice.cgst_amount }}</h3>
-
-<h3>SGST: {{ invoice.sgst_amount }}</h3>
-
-<h3>Net Amount: {{ invoice.net_amount }}</h3>
-
-<hr>
-
-<h2>Add Item</h2>
-
-<form method="POST">
-
-    {% csrf_token %}
-
-    <label>Product</label>
-
-    <select name="product">
-        {% for product in products %}
-            <option value="{{ product.id }}">
-                {{ product.name }}
-            </option>
-        {% endfor %}
-    </select>
-
-    <br><br>
-
-<label>Batch</label>
-
-<select name="batch">
-
-    {% for batch in batches %}
-        <option value="{{ batch.id }}">
-            {{ batch.product.name }}
-            -
-            {{ batch.batch_no }}
-            -
-            Stock: {{ batch.stock_qty }}
-        </option>
-    {% endfor %}
-
-</select>
-
-    <br><br>
-
-    <label>Qty</label>
-    <input type="number" name="qty">
-
-    <br><br>
-
-    <label>Free Qty</label>
-    <input type="number" name="free_qty" value="0">
-
-    <br><br>
-
-    <label>Rate</label>
-    <input type="number" step="0.01" name="rate">
-
-    <br><br>
-
-    <button type="submit">
-        Add Item
-    </button>
-
-    <a href="{% url 'print_invoice' invoice.id %}">
-        Print Invoice
-    </a>
-
-    <a
-    class="btn btn-warning"
-    href="{% url 'create_sales_return' invoice.id %}"
-    >
-    Sales Return
-    </a>
-
-</form>
-
-</body>
-</html>
+    <h2>Add Item</h2>
+    <form method="POST" action="{% url 'invoice_detail' invoice.id %}">
+        {% csrf_token %}
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label for="product" class="form-label">Product</label>
+                <select name="product" id="product" class="form-select" required>
+                    <option value="" selected disabled>Select Product</option>
+                    {% for product in products %}
+                        <option value="{{ product.id }}">{{ product.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="batch" class="form-label">Batch</label>
+                <select name="batch" id="batch" class="form-select" required>
+                    <option value="" selected disabled>Select Batch</option>
+                    {% for batch in batches %}
+                        <option value="{{ batch.id }}">{{ batch.product.name }} - {{ batch.batch_no }} (Stock: {{ batch.stock_qty }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="rate" class="form-label">Rate</label>
+                <input type="number" name="rate" id="rate" step="0.01" class="form-control" placeholder="0.00" required>
+            </div>
+            <div class="col-md-1">
+                <label for="qty" class="form-label">Qty</label>
+                <input type="number" name="qty" id="qty" min="1" class="form-control" required>
+            </div>
+            <div class="col-md-1">
+                <label for="free_qty" class="form-label">Free Qty</label>
+                <input type="number" name="free_qty" id="free_qty" min="0" value="0" class="form-control" required>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary mt-3">Add Item</button>
+    </form>
+</div>
+{% endblock %}
