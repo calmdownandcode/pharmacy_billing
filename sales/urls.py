@@ -15,4 +15,10 @@ urlpatterns = [
     views.print_invoice,
     name='print_invoice'
     ),
+
+    path(
+    'return/<int:invoice_id>/',
+    views.create_sales_return,
+    name='create_sales_return'
+    ),
 ]

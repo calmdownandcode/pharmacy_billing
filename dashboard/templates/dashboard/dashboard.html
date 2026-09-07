@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h1>Dashboard</h1>
+
+<div class="row">
+
+    <div class="col-md-3">
+
+        <div class="card">
+
+            <div class="card-body">
+
+                <h5>Today's Sales</h5>
+
+                <h3>
+                    ₹{{ today_sales }}
+                </h3>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="col-md-3">
+
+        <div class="card">
+
+            <div class="card-body">
+
+                <h5>Purchases</h5>
+
+                <h3>
+                    {{ today_purchases }}
+                </h3>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="col-md-3">
+
+        <div class="card">
+
+            <div class="card-body">
+
+                <h5>Low Stock</h5>
+
+                <h3>
+                    {{ low_stock_count }}
+                </h3>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="col-md-3">
+
+        <div class="card">
+
+            <div class="card-body">
+
+                <h5>Expiring</h5>
+
+                <h3>
+                    {{ expiring_count }}
+                </h3>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<div class="mt-4">
+
+    <a
+        href="/purchases/new/"
+        class="btn btn-primary">
+        New Purchase
+    </a>
+
+    <a
+        href="/invoice/new/"
+        class="btn btn-success">
+        New Sale
+    </a>
+
+    <a
+        href="/ledger/payment/new/"
+        class="btn btn-warning">
+        Add Payment
+    </a>
+
+</div>
+
+{% endblock %}

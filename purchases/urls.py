@@ -8,4 +8,9 @@ urlpatterns = [
          views.purchase_detail,
          name='purchase_detail'
     ),
+    path(
+    'return/<int:purchase_id>/',
+    views.create_purchase_return,
+    name='create_purchase_return'
+    ),
 ]

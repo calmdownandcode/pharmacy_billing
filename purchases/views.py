@@ -3,7 +3,9 @@ from core.models import (
     Supplier,
     PurchaseInvoice,
     PurchaseItem,
-    Product
+    Product,
+    PurchaseReturn,
+    PurchaseReturnItem,
 )
 
 
@@ -74,6 +76,56 @@ def purchase_detail(request, purchase_id):
         {
             'purchase': purchase,
             'products': products,
+            'items': items
+        }
+    )
+
+def create_purchase_return(
+    request,
+    purchase_id
+):
+
+    purchase = PurchaseInvoice.objects.get(
+        id=purchase_id
+    )
+
+    if request.method == "POST":
+
+        purchase_return = PurchaseReturn.objects.create(
+            purchase_invoice=purchase,
+            return_date=date.today()
+        )
+
+        item_id = request.POST.get(
+            "purchase_item"
+        )
+
+        qty = int(
+            request.POST.get("qty")
+        )
+
+        purchase_item = PurchaseItem.objects.get(
+            id=item_id
+        )
+
+        PurchaseReturnItem.objects.create(
+            purchase_return=purchase_return,
+            purchase_item=purchase_item,
+            qty=qty
+        )
+
+        return redirect(
+            'purchase_detail',
+            purchase_id=purchase.id
+        )
+
+    items = purchase.items.all()
+
+    return render(
+        request,
+        'purchases/create_purchase_return.html',
+        {
+            'purchase': purchase,
             'items': items
         }
     )

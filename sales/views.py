@@ -6,6 +6,8 @@ from core.models import (
     Batch,
     InvoiceItem,
     Company,
+    SalesReturn,
+    SalesReturnItem,
 )
 from datetime import date
 
@@ -111,5 +113,55 @@ def print_invoice(request, invoice_id):
             'invoice': invoice,
             'items': items,
             'company': company
+        }
+    )
+
+def create_sales_return(
+    request,
+    invoice_id
+):
+
+    invoice = Invoice.objects.get(
+        id=invoice_id
+    )
+
+    if request.method == "POST":
+
+        sales_return = SalesReturn.objects.create(
+            invoice=invoice,
+            return_date=date.today()
+        )
+
+        item_id = request.POST.get(
+            "invoice_item"
+        )
+
+        qty = int(
+            request.POST.get("qty")
+        )
+
+        invoice_item = InvoiceItem.objects.get(
+            id=item_id
+        )
+
+        SalesReturnItem.objects.create(
+            sales_return=sales_return,
+            invoice_item=invoice_item,
+            qty=qty
+        )
+
+        return redirect(
+            'invoice_detail',
+            invoice_id=invoice.id
+        )
+
+    items = invoice.items.all()
+
+    return render(
+        request,
+        'sales/create_sales_return.html',
+        {
+            'invoice': invoice,
+            'items': items
         }
     )

@@ -1,6 +1,10 @@
 from django.db import models
 from django.core.exceptions import ValidationError
 from decimal import Decimal
+from django.db import transaction
+from django.db.models import Q
+from django.db.models import CheckConstraint
+
 
 
 class Company(models.Model):
@@ -39,12 +43,6 @@ class Product(models.Model):
 
 class Batch(models.Model):
 
-    class Meta:
-        unique_together = (
-            'product',
-            'batch_no'
-        )
-
     product = models.ForeignKey(
         Product,
         on_delete=models.CASCADE,
@@ -72,6 +70,19 @@ class Batch(models.Model):
 
     stock_qty = models.IntegerField(default=0)
 
+    class Meta:
+            unique_together = (
+                'product',
+                'batch_no'
+            )
+
+            constraints = [
+                CheckConstraint(
+                    condition=Q(stock_qty__gte=0),
+                    name="stock_not_negative"
+                )
+            ]
+            
     def __str__(self):
         return f"{self.product.name} - {self.batch_no}"
 
@@ -177,39 +188,6 @@ class Invoice(models.Model):
 
         super().save(*args, **kwargs)
 
-    def calculate_totals(self):
-
-        taxable = Decimal("0.00")
-        total_gst = Decimal("0.00")
-
-        for item in self.items.all():
-
-            taxable += item.taxable_value
-
-            total_gst += (
-                item.line_total -
-                item.taxable_value
-            )
-
-        self.taxable_amount = taxable
-
-        self.cgst_amount = total_gst / 2
-
-        self.sgst_amount = total_gst / 2
-
-        self.net_amount = (
-            taxable +
-            total_gst
-        )
-
-        super().save(
-            update_fields=[
-                "taxable_amount",
-                "cgst_amount",
-                "sgst_amount",
-                "net_amount"
-            ]
-        )
 
 
 class InvoiceItem(models.Model):
@@ -270,37 +248,29 @@ class InvoiceItem(models.Model):
     def total_units(self):
         return self.qty + self.free_qty
 
+
+    @transaction.atomic
     def save(self, *args, **kwargs):
 
-        self.full_clean()
-
+        # Prevent calling full_clean() inside save block if it creates double-validation loop
+        original_units = 0
         if self.pk:
             old_item = InvoiceItem.objects.get(pk=self.pk)
-
+            original_units = old_item.total_units()
+            
+            # Revert old stock temporary for calculations
             old_batch = old_item.batch
-            old_batch.stock_qty += old_item.total_units()
+            old_batch.stock_qty += original_units
             old_batch.save()
 
         required_stock = self.total_units()
-
         if required_stock > self.batch.stock_qty:
-            raise ValidationError(
-                f"Only {self.batch.stock_qty} units available"
-            )
+            raise ValidationError(f"Only {self.batch.stock_qty} units available")
 
-        self.taxable_value = (
-            self.qty * self.rate
-        ) - self.discount
-
+        self.taxable_value = (self.qty * self.rate) - self.discount
         self.gst_rate = self.product.gst_rate
-
-        gst_amount = (
-            self.taxable_value * self.gst_rate
-        ) / 100
-
-        self.line_total = (
-            self.taxable_value + gst_amount
-        )
+        gst_amount = (self.taxable_value * self.gst_rate) / 100
+        self.line_total = self.taxable_value + gst_amount
 
         self.batch.stock_qty -= required_stock
         self.batch.save()
@@ -308,14 +278,29 @@ class InvoiceItem(models.Model):
         super().save(*args, **kwargs)
         self.invoice.calculate_totals()
 
+        def delete(self, *args, **kwargs):
+            self.batch.stock_qty += self.total_units()
+            self.batch.save()
+            invoice = self.invoice
+            super().delete(*args, **kwargs)
+            invoice.calculate_totals()
+
 
     def clean(self):
-        required_stock = self.qty + self.free_qty
 
+        if self.qty <= 0:
+            raise ValidationError("Quantity must be greater than zero")
+        if self.rate < 0:
+            raise ValidationError("Rate cannot be negative")
+
+        # Allow adjustment room if updating
+        original_units = 0
+        if self.pk:
+            original_units = InvoiceItem.objects.get(pk=self.pk).total_units()
+
+        required_stock = (self.qty + self.free_qty) - original_units
         if required_stock > self.batch.stock_qty:
-            raise ValidationError(
-                f"Only {self.batch.stock_qty} items available in stock"
-            )
+            raise ValidationError(f"Only {self.batch.stock_qty + original_units} items available in stock")
 
 
 class Supplier(models.Model):
@@ -381,31 +366,214 @@ class PurchaseItem(models.Model):
         decimal_places=2
     )
 
+    @transaction.atomic
     def save(self, *args, **kwargs):
 
-        is_new = self.pk is None
+        old_qty = 0
+
+        if self.pk:
+
+            old_qty = PurchaseItem.objects.get(
+                pk=self.pk
+            ).qty
+
+        difference = self.qty - old_qty
 
         super().save(*args, **kwargs)
 
-        if is_new:
 
-            batch, created = Batch.objects.get_or_create(
-                product=self.product,
-                batch_no=self.batch_no,
-                defaults={
-                    'expiry_date': self.expiry_date,
-                    'mrp': self.mrp,
-                    'ptr': self.ptr,
-                    'pts': self.pts,
-                    'stock_qty': 0
+        batch, created = Batch.objects.get_or_create(
+            product=self.product,
+            batch_no=self.batch_no,
+            defaults={
+                'expiry_date': self.expiry_date,
+                'mrp': self.mrp,
+                'ptr': self.ptr,
+                'pts': self.pts,
+                'stock_qty': 0
                 }
             )
 
-            batch.stock_qty += self.qty
+        # Safe addition whether it is an update or a new record
+        batch.stock_qty += difference
+        batch.expiry_date = self.expiry_date
+        batch.mrp = self.mrp
+        batch.ptr = self.ptr
+        batch.pts = self.pts
+        batch.save()
 
-            batch.expiry_date = self.expiry_date
-            batch.mrp = self.mrp
-            batch.ptr = self.ptr
-            batch.pts = self.pts
 
-            batch.save()
+class Payment(models.Model):
+
+    customer = models.ForeignKey(
+        Customer,
+        on_delete=models.PROTECT,
+        related_name="payments"
+    )
+
+    payment_date = models.DateField()
+
+    amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2
+    )
+
+    reference_no = models.CharField(
+        max_length=100,
+        blank=True
+    )
+
+    remarks = models.TextField(
+        blank=True
+    )
+
+    def __str__(self):
+        return (
+            f"{self.customer.name} - "
+            f"{self.amount}"
+        )
+
+class SalesReturn(models.Model):
+
+    invoice = models.ForeignKey(
+        Invoice,
+        on_delete=models.PROTECT
+    )
+
+    return_date = models.DateField()
+
+    remarks = models.TextField(
+        blank=True
+    )
+
+    credit_amount = models.DecimalField(
+    max_digits=12,
+    decimal_places=2,
+    default=0
+    )
+
+    def __str__(self):
+        return f"Return {self.id}"
+
+class SalesReturnItem(models.Model):
+
+    sales_return = models.ForeignKey(
+        SalesReturn,
+        on_delete=models.CASCADE,
+        related_name='items'
+    )
+
+    invoice_item = models.ForeignKey(
+        InvoiceItem,
+        on_delete=models.PROTECT
+    )
+
+    qty = models.IntegerField()
+
+    def __str__(self):
+        return str(self.invoice_item.product)
+
+    @transaction.atomic
+    def save(self, *args, **kwargs):
+
+        batch = self.invoice_item.batch
+        old_qty = 0
+
+        if self.pk:
+            old_item = SalesReturnItem.objects.get(pk=self.pk)
+            old_qty = old_item.qty
+
+        delta_qty = self.qty - old_qty
+        batch.stock_qty += delta_qty
+        batch.save()
+
+        
+        delta_value = Decimal(str(delta_qty)) * self.invoice_item.rate
+        self.sales_return.credit_amount += delta_valueself.sales_return.save()
+        super().save(*args, **kwargs)
+
+    def clean(self):
+
+        if self.qty <= 0:
+            raise ValidationError("Quantity must be greater than zero")
+
+        sold_qty = self.invoice_item.qty
+        previous_returns = SalesReturnItem.objects.filter(invoice_item=self.invoice_item)
+
+        if self.pk:
+            previous_returns = previous_returns.exclude(pk=self.pk)
+
+        returned_qty = sum(item.qty for item in previous_returns)
+        allowed_qty = sold_qty - returned_qty
+        
+        if self.qty > allowed_qty:
+            raise ValidationError(f"Only {allowed_qty} units can be returned")
+
+class PurchaseReturn(models.Model):
+
+    purchase_invoice = models.ForeignKey(
+        PurchaseInvoice,
+        on_delete=models.PROTECT
+    )
+
+    return_date = models.DateField()
+
+    remarks = models.TextField(
+        blank=True
+    )
+
+    return_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0
+    )
+
+    def __str__(self):
+        return f"Purchase Return {self.id}"
+
+class PurchaseReturnItem(models.Model):
+
+    purchase_return = models.ForeignKey(
+        PurchaseReturn,
+        on_delete=models.CASCADE,
+        related_name='items'
+    )
+
+    purchase_item = models.ForeignKey(
+        PurchaseItem,
+        on_delete=models.PROTECT
+    )
+
+    qty = models.IntegerField()
+
+    def __str__(self):
+        return str(
+            self.purchase_item.product
+        )
+
+    @transaction.atomic
+    def save(self, *args, **kwargs):
+
+        batch = self.purchase_item.batch
+        old_qty = 0
+
+        if self.pk:
+            old_qty = PurchaseReturnItem.objects.get(pk=self.pk).qty
+
+        delta_qty = self.qty - old_qty
+
+        if delta_qty > batch.stock_qty:
+            raise ValidationError(f"Not enough stock available. Max can be returned extra: {batch.stock_qty}")
+
+        batch.stock_qty -= delta_qty
+        batch.save()
+
+        delta_value = Decimal(str(delta_qty)) * self.purchase_item.ptr
+        self.purchase_return.return_amount += delta_value
+        self.purchase_return.save()
+
+        super().save(*args, **kwargs)   
+
+    def clean(self):
+        if self.qty <= 0:
+            raise ValidationError("Quantity must be greater than zero")

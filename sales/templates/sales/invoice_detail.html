@@ -100,9 +100,16 @@ Customer:
         Add Item
     </button>
 
-<a href="{% url 'print_invoice' invoice.id %}">
-    Print Invoice
-</a>
+    <a href="{% url 'print_invoice' invoice.id %}">
+        Print Invoice
+    </a>
+
+    <a
+    class="btn btn-warning"
+    href="{% url 'create_sales_return' invoice.id %}"
+    >
+    Sales Return
+    </a>
 
 </form>
 

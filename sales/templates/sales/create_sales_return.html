@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h2>
+Sales Return
+</h2>
+
+<h4>
+Invoice:
+{{ invoice.invoice_number }}
+</h4>
+
+<form method="POST">
+
+{% csrf_token %}
+
+<label>Item</label>
+
+<select name="invoice_item">
+
+{% for item in items %}
+
+<option value="{{ item.id }}">
+
+{{ item.product.name }}
+
+(Batch: {{ item.batch.batch_no }})
+
+</option>
+
+{% endfor %}
+
+</select>
+
+<br><br>
+
+<label>Return Qty</label>
+
+<input
+type="number"
+name="qty"
+required
+>
+
+<br><br>
+
+<button
+class="btn btn-danger"
+type="submit"
+>
+Save Return
+</button>
+
+
+
+</form>
+
+{% endblock %}

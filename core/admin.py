@@ -1,10 +1,11 @@
 from django.contrib import admin
-from .models import (Company, Customer, Product, Batch, Invoice, InvoiceItem)
+from .models import (Company, Customer, Product, Batch, Invoice, InvoiceItem, Payment)
 
 admin.site.register(Company)
 admin.site.register(Customer)
 admin.site.register(Product)
 admin.site.register(Batch)
+admin.site.register(Payment)
 
 
 class InvoiceItemInline(admin.TabularInline):
@@ -15,3 +16,5 @@ class InvoiceItemInline(admin.TabularInline):
 @admin.register(Invoice)
 class InvoiceAdmin(admin.ModelAdmin):
     inlines = [InvoiceItemInline]
+
+

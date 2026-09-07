@@ -1,47 +1,25 @@
 <!DOCTYPE html>
 <html>
-
-<head>
-    <title>Stock Report</title>
-</head>
-
 <body>
 
-<h1>Current Stock Report</h1>
+<h1>Low Stock Report</h1>
 
 <table class="table table-striped table-bordered">
 
 <tr>
     <th>Product</th>
     <th>Batch</th>
-    <th>Expiry</th>
     <th>Stock</th>
-    <th>MRP</th>
     <th>PTR</th>
-    <th>PTS</th>
-    <th>Stock Value</th>
 </tr>
 
 {% for batch in batches %}
 
 <tr>
-
     <td>{{ batch.product.name }}</td>
-
     <td>{{ batch.batch_no }}</td>
-
-    <td>{{ batch.expiry_date }}</td>
-
     <td>{{ batch.stock_qty }}</td>
-
-    <td>{% widthratio batch.stock_qty 1 batch.ptr %}</td>
-
-    <td>{{ batch.mrp }}</td>
-
     <td>{{ batch.ptr }}</td>
-
-    <td>{{ batch.pts }}</td>
-
 </tr>
 
 {% endfor %}
