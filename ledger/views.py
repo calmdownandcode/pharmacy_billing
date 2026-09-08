@@ -1,3 +1,4 @@
+from decimal import Decimal
 from django.shortcuts import render, redirect, get_object_or_404
 from core.models import Customer, Payment, SalesReturn
 from datetime import date
@@ -61,7 +62,7 @@ def payment_create(request):
         Payment.objects.create(
             customer=customer,
             payment_date=request.POST.get("payment_date"),
-            amount=request.POST.get("amount"),
+            amount=Decimal(request.POST.get("amount") or "0.00"),
             reference_no=request.POST.get("reference_no"),
             remarks=request.POST.get("remarks")
         )

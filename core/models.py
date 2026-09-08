@@ -10,6 +10,7 @@ from django.db.models import CheckConstraint
 class Company(models.Model):
     name = models.CharField(max_length=200)
     address = models.TextField()
+    city = models.TextField(default = 'X')
     phone = models.CharField(max_length=20)
     gst_no = models.CharField(max_length=20)
     drug_license_no = models.CharField(max_length=50)
@@ -82,7 +83,7 @@ class Batch(models.Model):
                     name="stock_not_negative"
                 )
             ]
-            
+
     def __str__(self):
         return f"{self.product.name} - {self.batch_no}"
 
@@ -210,7 +211,7 @@ class InvoiceItem(models.Model):
     qty = models.IntegerField()
 
     free_qty = models.IntegerField(
-        default=0
+        default=0, blank=True, null=True
     )
 
     rate = models.DecimalField(
@@ -278,30 +279,33 @@ class InvoiceItem(models.Model):
         super().save(*args, **kwargs)
         self.invoice.calculate_totals()
 
-        def delete(self, *args, **kwargs):
-            self.batch.stock_qty += self.total_units()
-            self.batch.save()
-            invoice = self.invoice
-            super().delete(*args, **kwargs)
-            invoice.calculate_totals()
+    def delete(self, *args, **kwargs):
+        self.batch.stock_qty += self.total_units()
+        self.batch.save()
+        invoice = self.invoice
+        super().delete(*args, **kwargs)
+        invoice.calculate_totals()
 
-
+    #  NEW SECURED CODE BLOCK:
     def clean(self):
-
         if self.qty <= 0:
             raise ValidationError("Quantity must be greater than zero")
         if self.rate < 0:
             raise ValidationError("Rate cannot be negative")
 
-        # Allow adjustment room if updating
+        # Ensure blank values evaluate to 0 instead of falling back to None
+        qty = self.qty or 0
+        free_qty = self.free_qty or 0
+
+        # Allow adjustment room if updating existing items
         original_units = 0
         if self.pk:
             original_units = InvoiceItem.objects.get(pk=self.pk).total_units()
 
-        required_stock = (self.qty + self.free_qty) - original_units
+        # Safe calculation wrapper variables protected against None inputs
+        required_stock = (qty + free_qty) - original_units
         if required_stock > self.batch.stock_qty:
             raise ValidationError(f"Only {self.batch.stock_qty + original_units} items available in stock")
-
 
 class Supplier(models.Model):
     name = models.CharField(max_length=200)

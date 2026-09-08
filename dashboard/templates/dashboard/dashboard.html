@@ -4,39 +4,47 @@
 <div class="container mt-4">
     <h1 class="mb-4">Dashboard</h1>
     <div class="row g-4 mb-4">
+        <!-- Today's Sales Card -->
         <div class="col-md-3">
-            <div class="card bg-success text-white">
+            <div class="card bg-success text-white shadow-sm h-100 d-flex flex-column justify-content-between">
                 <div class="card-body">
-                    <h5>Today's Sales</h5>
-                    <h3>₹{{ today_sales|default:"0.00" }}</h3>
+                    <h5 class="card-title text-white-50">Today's Sales</h5>
+                    <h3 class="card-text fw-bold mt-2">₹{{ today_sales|default:"0.00" }}</h3>
                 </div>
             </div>
         </div>
+
+        <!-- Today's Purchases Card -->
         <div class="col-md-3">
-            <div class="card bg-primary text-white">
+            <div class="card bg-primary text-white shadow-sm h-100 d-flex flex-column justify-content-between">
                 <div class="card-body">
-                    <h5>Today's Purchases</h5>
-                    <h3>{{ today_purchases }}</h3>
+                    <h5 class="card-title text-white-50">Today's Purchases</h5>
+                    <h3 class="card-text fw-bold mt-2">{{ today_purchases }}</h3>
                 </div>
             </div>
         </div>
+
+        <!-- Low Stock Alerts Card -->
         <div class="col-md-3">
-            <div class="card bg-warning text-dark">
+            <div class="card bg-warning text-dark shadow-sm h-100 d-flex flex-column justify-content-between">
                 <div class="card-body">
-                    <h5>Low Stock Alerts</h5>
-                    <h3>{{ low_stock_count }}</h3>
+                    <h5 class="card-title text-muted">Low Stock Alerts</h5>
+                    <h3 class="card-text fw-bold mt-2">{{ low_stock_count }}</h3>
                 </div>
             </div>
         </div>
+
+        <!-- Expiring Batches Card (Fixed) -->
         <div class="col-md-3">
-            <div class="card bg-danger text-white">
+            <div class="card bg-danger text-white shadow-sm h-100 d-flex flex-column justify-content-between">
                 <div class="card-body">
-                    <h5>Expiring Batches (90 Days)</h5>
-                    <h3>{{ expiring_count }}</h3>
+                    <h5 class="card-title text-white-50">Expiring Batches</h5>
+                    <h3 class="card-text fw-bold mt-2">{{ expiring_count }}</h3>
                 </div>
             </div>
         </div>
     </div>
+
 
     <div class="d-flex gap-3">
         <a href="{% url 'purchase_create' %}" class="btn btn-outline-primary">New Purchase</a>

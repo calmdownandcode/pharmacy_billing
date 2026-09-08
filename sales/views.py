@@ -1,3 +1,4 @@
+from decimal import Decimal
 from django.shortcuts import render, redirect, get_object_or_404
 from core.models import (
     Customer,
@@ -37,7 +38,7 @@ def invoice_detail(request, invoice_id):
         batch_id = request.POST.get("batch")
         qty = int(request.POST.get("qty") or 0)
         free_qty = int(request.POST.get("free_qty") or 0)
-        rate = request.POST.get("rate")
+        rate = Decimal(request.POST.get("rate") or "0.00")
 
         product = get_object_or_404(Product, id=product_id)
         batch = get_object_or_404(Batch, id=batch_id)

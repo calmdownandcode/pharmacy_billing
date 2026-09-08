@@ -1,81 +1,179 @@
+{% load invoice_filters %}
+
+
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>{{ invoice.invoice_number }}</title>
-
+    <meta charset="UTF-8">
+    <title>Tax Invoice - {{ invoice.invoice_number }}</title>
     <style>
-
-        body {
-            font-family: Arial;
-            margin: 20px;
+        body { font-family: 'Courier New', Courier, monospace; font-size: 11px; margin: 0; padding: 20px; color: #000; }
+        .invoice-box { width: 100%; border: 1px solid #000; padding: 0; }
+        .table-header { width: 100%; border-collapse: collapse; }
+        .table-header td { border: 1px solid #000; padding: 5px; vertical-align: top; }
+        .title-bar { text-align: center; font-weight: bold; font-size: 16px; border-bottom: 1px solid #000; padding: 5px; text-transform: uppercase; }
+        
+        /* Main Items Grid Matching Uploaded Target */
+        .items-table { width: 100%; border-collapse: collapse; margin-top: -1px; }
+        .items-table th, .items-table td { border: 1px solid #000; padding: 4px; text-align: center; font-size: 10px; }
+        .items-table th { background-color: #f2f2f2; font-weight: bold; }
+        .text-left { text-align: left !important; }
+        .text-right { text-align: right !important; }
+        
+        /* Layout Footer Framework */
+        .footer-table { width: 100%; border-collapse: collapse; margin-top: -1px; }
+        .footer-table td { border: 1px solid #000; padding: 6px; vertical-align: top; }
+        
+        /* Automatically open print dialog, hide web interface headers */
+        @media print {
+            body { padding: 0; }
+            .no-print { display: none; }
         }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        th, td {
-            border: 1px solid black;
-            padding: 5px;
-        }
-
+        
+        @page {
+            size: landscape;
+            margin: 10mm; /* Adjusts printable border space */
+        } 
+        
     </style>
 </head>
+<body onload="window.print();">
 
-<body>
+<div class="no-print" style="margin-bottom: 20px;">
+    <button onclick="window.print();" style="padding: 8px 16px; cursor: pointer;">🖨️ Click to Print Invoice</button>
+</div>
 
-<h2>{{ company.name }}</h2>
+<div class="invoice-box">
+    <!-- Main Center Heading Title Bar -->
+    <div class="title-bar">Tax Invoice <br><small>CASH / CREDIT</small></div>
 
-<p>{{ company.address }}</p>
+    <!-- Top Column Meta Grid: Seller vs Buyer Profiles -->
+    <table class="table-header">
+        <tr>
+            <td style="width: 45%;">
+                <strong>{{ company.name|default:"ANAMIKA ENTERPRISES" }}</strong><br>
+                {{ company.address|default:"CHAILITAL, PATNA, BIHAR" }}<br>
+                Phone: {{ company.phone|default:"9835440416" }}<br>
+                DL No: {{ company.drug_license_no|default:"359/359A" }}<br>
+                <strong>GST No: {{ company.gst_no|default:"10AKFPP4950M1Z1" }}</strong>
+            </td>
+            <td style="width: 25%;">
+                Invoice No: <strong>{{ invoice.invoice_number }}</strong><br>
+                Date: {{ invoice.invoice_date }}<br>
+                Due Date: {{ invoice.due_date|default:"-" }}
+            </td>
+            <td style="width: 30%;">
+                Party Name:<br>
+                <strong>{{ invoice.customer.name }}</strong><br>
+                {{ invoice.customer.address }}<br>
+                Phone: {{ invoice.customer.phone }}<br>
+                DL No: {{ invoice.customer.drug_license_no }}<br>
+                <strong>GST No: {{ invoice.customer.gst_no }}</strong>
+            </td>
+        </tr>
+    </table>
 
-<p>GST: {{ company.gst_no }}</p>
+    <!-- Central Items Rendering Ledger Grid Split Matrix -->
+    <table class="items-table">
+        <thead>
+            <tr>
+                <th rowspan="2" style="width: 4%;">S.No</th>
+                <th rowspan="2" style="width: 20%;">Description</th>
+                <th rowspan="2" style="width: 5%;">Pack</th>
+                <th rowspan="2" style="width: 5%;">QTY.</th>
+                <th rowspan="2" style="width: 4%;">Fr. Qty</th>
+                <th rowspan="2" style="width: 8%;">Batch No.</th>
+                <th rowspan="2" style="width: 6%;">HSN</th>
+                <th rowspan="2" style="width: 6%;">Exp. Dt</th>
+                <th rowspan="2" style="width: 6%;">MRP</th>
+                <th rowspan="2" style="width: 6%;">Rate</th>
+                <th rowspan="2" style="width: 8%;">Amount</th>
+                <th colspan="2">CGST</th>
+                <th colspan="2">SGST</th>
+                <th rowspan="2" style="width: 10%;">Total</th>
+            </tr>
+            <tr>
+                <th>Rate</th><th>Amt</th>
+                <th>Rate</th><th>Amt</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td class="text-left">{{ item.product.name }}</td>
+                <td>{{ item.product.pack|default:"10" }}</td>
+                <td>{{ item.qty }}</td>
+                <td>{{ item.free_qty }}</td>
+                <td>{{ item.batch.batch_no }}</td>
+                <td>{{ item.product.hsn_code|default:"3004" }}</td>
+                <td>{{ item.batch.expiry_date|date:"m/y" }}</td>
+                <td>{{ item.batch.mrp }}</td>
+                <td>{{ item.rate }}</td>
+                <td>{{ item.taxable_value }}</td>
+                
+                <!-- CGST Segment -->
+                <td>{{ item.gst_rate|dictsort:"2" }}%</td>
+                <td>{{ item.cgst_amount|default:"0.00" }}</td>
+                
+                <!-- SGST Segment -->
+                <td>{{ item.gst_rate|dictsort:"2" }}%</td>
+                <td>{{ item.sgst_amount|default:"0.00" }}</td>
+                
+                <td>{{ item.line_total }}</td>
+            </tr>
+            {% endfor %}
+            
+            <!-- Structural Padding Empty Rows to Fill Page Height Like Image Target -->
+            <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+            <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+        </tbody>
+    </table>
 
-<hr>
+    <!-- Double Column Informational Calculation Base Footer Summary Block -->
+    <table class="footer-table">
+        <tr>
+            <td style="width: 55%;">
+                <!-- Insert this summary row right above your terms or totals layout grids -->
+                    <div style="border-left: 1px solid #000; border-right: 1px solid #000; border-bottom: 1px solid #000; padding: 6px; font-size: 11px;">
+                        <strong>Amount in Words:</strong> 
+                        <span style="text-transform: uppercase;">{{ invoice.net_amount|amt_in_words }}</span>
+                    </div>
 
-<h3>Invoice: {{ invoice.invoice_number }}</h3>
-
-<p>Date: {{ invoice.invoice_date }}</p>
-
-<p>Party: {{ invoice.customer.name }}</p>
-
-<table>
-
-<tr>
-    <th>Product</th>
-    <th>Batch</th>
-    <th>Qty</th>
-    <th>Rate</th>
-    <th>Total</th>
-</tr>
-
-{% for item in items %}
-
-<tr>
-    <td>{{ item.product.name }}</td>
-    <td>{{ item.batch.batch_no }}</td>
-    <td>{{ item.qty }}</td>
-    <td>{{ item.rate }}</td>
-    <td>{{ item.line_total }}</td>
-</tr>
-
-{% endfor %}
-
-</table>
-
-<br>
-
-<h3>Taxable: {{ invoice.taxable_amount }}</h3>
-
-<h3>CGST: {{ invoice.cgst_amount }}</h3>
-
-<h3>SGST: {{ invoice.sgst_amount }}</h3>
-
-<h2>Net Amount: {{ invoice.net_amount }}</h2>
-
-<script>
-window.print();
-</script>
+                <strong>Terms & Conditions:</strong><br>
+                1. All disputes subject to "{{ company.address }}" jurisdiction only.<br>
+                2. Goods once sold will not be taken back.<br>
+                3. Certified that drugs supplied do not contravene section 18 of Drugs & Cosmetics Act.
+            </td>
+            <td style="width: 45%; padding: 0;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                        <td style="border: none; padding: 4px;">Total Taxable Value:</td>
+                        <td class="text-right" style="border: none; padding: 4px;">₹{{ invoice.taxable_amount }}</td>
+                    </tr>
+                    <tr>
+                        <td style="border: none; padding: 4px;">Total CGST:</td>
+                        <td class="text-right" style="border: none; padding: 4px;">₹{{ invoice.cgst_amount }}</td>
+                    </tr>
+                    <tr>
+                        <td style="border: none; padding: 4px;">Total SGST:</td>
+                        <td class="text-right" style="border: none; padding: 4px;">₹{{ invoice.sgst_amount }}</td>
+                    </tr>
+                    <tr style="border-top: 1px solid #000; font-weight: bold; font-size: 13px;">
+                        <td style="border: none; padding: 6px;">Net Amount Payable:</td>
+                        <td class="text-right" style="border: none; padding: 6px;">₹{{ invoice.net_amount }}</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="2" style="text-align: right; height: 60px; vertical-align: bottom; padding-right: 20px;">
+                For <strong>{{ company.name|default:"ANAMIKA ENTERPRISES" }}</strong><br><br><br>
+                Authorised Signatory
+            </td>
+        </tr>
+    </table>
+</div>
 
 </body>
 </html>

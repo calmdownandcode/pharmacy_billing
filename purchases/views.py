@@ -1,3 +1,4 @@
+from decimal import Decimal
 from django.shortcuts import render, redirect
 from core.models import (
     Supplier,
@@ -55,10 +56,10 @@ def purchase_detail(request, purchase_id):
             product=product,
             batch_no=request.POST.get("batch_no"),
             expiry_date=request.POST.get("expiry_date"),
-            qty=request.POST.get("qty"),
-            mrp=request.POST.get("mrp"),
-            ptr=request.POST.get("ptr"),
-            pts=request.POST.get("pts")
+            qty=int(request.POST.get("qty") or 0),
+            mrp = Decimal(request.POST.get("mrp") or "0.00"),
+            ptr = Decimal(request.POST.get("ptr") or "0.00"),
+            pts = Decimal(request.POST.get("pts") or "0.00")
         )
 
         return redirect(
