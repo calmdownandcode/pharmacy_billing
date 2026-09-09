@@ -90,9 +90,11 @@
                 <th rowspan="2" style="width: 8%;">Amount</th>
                 <th colspan="2">CGST</th>
                 <th colspan="2">SGST</th>
+                <th colspan="2">IGST</th>
                 <th rowspan="2" style="width: 10%;">Total</th>
             </tr>
             <tr>
+                <th>Rate</th><th>Amt</th>
                 <th>Rate</th><th>Amt</th>
                 <th>Rate</th><th>Amt</th>
             </tr>
@@ -112,13 +114,17 @@
                 <td>{{ item.rate }}</td>
                 <td>{{ item.taxable_value }}</td>
                 
-                <!-- CGST Segment -->
-                <td>{{ item.gst_rate|dictsort:"2" }}%</td>
-                <td>{{ item.cgst_amount|default:"0.00" }}</td>
+                <!-- Dynamic CGST Column Display -->
+                <td>{% if item.cgst_amount > 0 %}{{ item.gst_rate|floatformat:1 }}%{% else %}0%{% endif %}</td>
+                <td>{{ item.cgst_amount|floatformat:2 }}</td>
                 
-                <!-- SGST Segment -->
-                <td>{{ item.gst_rate|dictsort:"2" }}%</td>
-                <td>{{ item.sgst_amount|default:"0.00" }}</td>
+                <!-- Dynamic SGST Column Display -->
+                <td>{% if item.sgst_amount > 0 %}{{ item.gst_rate|floatformat:1 }}%{% else %}0%{% endif %}</td>
+                <td>{{ item.sgst_amount|floatformat:2 }}</td>
+
+                <!-- Dynamic IGST Column Display -->
+                <td>{% if item.igst_amount > 0 %}{{ item.gst_rate|floatformat:1 }}%{% else %}0%{% endif %}</td>
+                <td>{{ item.igst_amount|floatformat:2 }}</td>
                 
                 <td>{{ item.line_total }}</td>
             </tr>
@@ -141,7 +147,7 @@
                     </div>
 
                 <strong>Terms & Conditions:</strong><br>
-                1. All disputes subject to "{{ company.address }}" jurisdiction only.<br>
+                1. All disputes subject to "{{ company.city }}" jurisdiction only.<br>
                 2. Goods once sold will not be taken back.<br>
                 3. Certified that drugs supplied do not contravene section 18 of Drugs & Cosmetics Act.
             </td>
@@ -158,6 +164,10 @@
                     <tr>
                         <td style="border: none; padding: 4px;">Total SGST:</td>
                         <td class="text-right" style="border: none; padding: 4px;">₹{{ invoice.sgst_amount }}</td>
+                    </tr>
+                    <tr>
+                        <td style="border: none; padding: 4px;">Total IGST:</td>
+                        <td class="text-right" style="border: none; padding: 4px;">₹{{ invoice.igst_amount }}</td>
                     </tr>
                     <tr style="border-top: 1px solid #000; font-weight: bold; font-size: 13px;">
                         <td style="border: none; padding: 6px;">Net Amount Payable:</td>

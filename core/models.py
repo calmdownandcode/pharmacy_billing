@@ -10,10 +10,12 @@ from django.db.models import CheckConstraint
 class Company(models.Model):
     name = models.CharField(max_length=200)
     address = models.TextField()
+    state = models.CharField(max_length=100, default="BIHAR")
     city = models.TextField(default = 'X')
     phone = models.CharField(max_length=20)
     gst_no = models.CharField(max_length=20)
     drug_license_no = models.CharField(max_length=50)
+
 
     def __str__(self):
         return self.name
@@ -22,10 +24,11 @@ class Company(models.Model):
 class Customer(models.Model):
     name = models.CharField(max_length=200)
     address = models.TextField()
+    state = models.CharField(max_length=100)
     phone = models.CharField(max_length=20, blank=True)
     gst_no = models.CharField(max_length=20, blank=True)
     drug_license_no = models.CharField(max_length=50, blank=True)
-    state = models.CharField(max_length=100)
+    
 
     def __str__(self):
         return self.name
@@ -153,26 +156,23 @@ class Invoice(models.Model):
 
     def calculate_totals(self):
         items = self.items.all()
-
         taxable = Decimal("0.00")
-        total_gst = Decimal("0.00")
+        cgst = Decimal("0.00")
+        sgst = Decimal("0.00")
+        igst = Decimal("0.00")
 
         for item in items:
-            taxable += item.taxable_value
-            total_gst += item.line_total - item.taxable_value
+            taxable += Decimal(str(item.taxable_value or 0))
+            cgst += Decimal(str(item.cgst_amount or 0))
+            sgst += Decimal(str(item.sgst_amount or 0))
+            igst += Decimal(str(item.igst_amount or 0))
 
         self.taxable_amount = taxable
-        self.cgst_amount = total_gst / 2
-        self.sgst_amount = total_gst / 2
-
-        self.net_amount = taxable + total_gst
-
-        self.save(update_fields=[
-            'taxable_amount',
-            'cgst_amount',
-            'sgst_amount',
-            'net_amount'
-        ])
+        self.cgst_amount = cgst
+        self.sgst_amount = sgst
+        self.igst_amount = igst
+        self.net_amount = taxable + cgst + sgst + igst
+        self.save(update_fields=['taxable_amount', 'cgst_amount', 'sgst_amount', 'igst_amount', 'net_amount'])
 
     def save(self, *args, **kwargs):
 
@@ -237,6 +237,18 @@ class InvoiceItem(models.Model):
         default=0
     )
 
+    cgst_amount = models.DecimalField(max_digits=12, 
+    decimal_places=2, 
+    default=0)  # Added field tracking
+
+    sgst_amount = models.DecimalField(max_digits=12, 
+    decimal_places=2, 
+    default=0)  # Added field tracking
+
+    igst_amount = models.DecimalField(max_digits=12, 
+    decimal_places=2, 
+    default=0)  # Added field tracking
+
     line_total = models.DecimalField(
         max_digits=12,
         decimal_places=2,
@@ -268,10 +280,31 @@ class InvoiceItem(models.Model):
         if required_stock > self.batch.stock_qty:
             raise ValidationError(f"Only {self.batch.stock_qty} units available")
 
+        # 🛡️ Cast calculations to safeguard mathematical operations
+        qty = int(self.qty or 0)
+        rate = Decimal(str(self.rate or 0))
+        discount = Decimal(str(self.discount or 0))
+
         self.taxable_value = (self.qty * self.rate) - self.discount
         self.gst_rate = self.product.gst_rate
         gst_amount = (self.taxable_value * self.gst_rate) / 100
         self.line_total = self.taxable_value + gst_amount
+
+        # 🚀 NEW: Dynamic Interstate vs Intrastate tax router logic
+        company = Company.objects.first()
+        seller_state = company.state.strip().upper() if company and company.state else "BIHAR"
+        buyer_state = self.invoice.customer.state.strip().upper()
+
+        if seller_state == buyer_state:
+            # Same State -> Split CGST + SGST (IGST is zero)
+            self.cgst_amount = gst_amount / 2
+            self.sgst_amount = gst_amount / 2
+            self.igst_amount = Decimal("0.00")
+        else:
+            # Different State -> Full IGST applied (CGST/SGST are zero)
+            self.cgst_amount = Decimal("0.00")
+            self.sgst_amount = Decimal("0.00")
+            self.igst_amount = gst_amount
 
         self.batch.stock_qty -= required_stock
         self.batch.save()
@@ -493,7 +526,8 @@ class SalesReturnItem(models.Model):
 
         
         delta_value = Decimal(str(delta_qty)) * self.invoice_item.rate
-        self.sales_return.credit_amount += delta_valueself.sales_return.save()
+        self.sales_return.credit_amount += delta_value
+        self.sales_return.save()
         super().save(*args, **kwargs)
 
     def clean(self):
